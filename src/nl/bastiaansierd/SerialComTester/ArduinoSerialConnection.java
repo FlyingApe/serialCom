@@ -8,6 +8,7 @@ import gnu.io.CommPortIdentifier;
 import gnu.io.SerialPort;
 
 import java.io.*;
+import java.net.Socket;
 import java.util.Scanner;
 
 public class ArduinoSerialConnection{
@@ -67,16 +68,11 @@ public class ArduinoSerialConnection{
     {
         InputStream in;
         BufferedReader src;
-        private String lastReadJSONString;
 
         public SerialReader ( InputStream in)
         {
             this.in = in;
             src=new BufferedReader(new InputStreamReader(in));
-        }
-
-        public String getLastReadJSONString() {
-            return lastReadJSONString;
         }
 
         public void run ()
@@ -88,94 +84,30 @@ public class ArduinoSerialConnection{
                     json+=line;
                     if (line.trim().equals("}")) {
                         // process json string
-                        System.out.println("JSON: " + json);
                         try {
                             JsonObject jsonTestObject = (JsonObject) Jsoner.deserialize(json);
-                            lastReadJSONString = json;
+                            //jsonTestObject.
+                            System.out.println("JSON: " + json);
+
+                            //stuur over socket naar server of stub
+                            Socket s = new Socket("localhost", 8888);
+                            InputStream serverIn = s.getInputStream();
+                            OutputStream serverOut = s.getOutputStream();
+                            PrintWriter writer = new PrintWriter(serverOut);
+                            writer.println(json);
+                            writer.flush();
+
+                            s.close();
+
                         } catch (JsonException e) {
-                            e.printStackTrace();
+                            //e.printStackTrace();
                         }
                         json="";
                     }
                 } catch (IOException e) {
                     //e.printStackTrace();
                 }
-            }/*
-            byte[] buffer = new byte[1024];
-            int len = -1;
-            try {
-                String inputString;
-                //int tagCounter = 0;
-
-                StringBuilder bufferBuilder = new StringBuilder();
-                StringBuilder jsonBuilder = new StringBuilder();
-
-                bufferReader:
-                while ((len = this.in.read(buffer)) > -1) {
-                    String bufferedString = new String(buffer, 0, len);
-                    //System.out.println("bS: " + bufferedString);
-
-                    bufferBuilder.append(bufferedString);
-                    inputString = bufferBuilder.toString();
-
-                    //boolean write = false;
-                    Scanner bufferScanner = new Scanner(inputString);
-
-                    boolean loopedOnce = false;
-                    int curlyBracketCounter = 0;
-                    int minimumCurlyBracketCount = 1024;
-
-                    while (bufferScanner.hasNextLine()) {
-                        String bufferedLine = bufferScanner.nextLine();
-
-                        char[] bufferedChars = bufferedLine.toCharArray();
-                        for(int i = 0; i < bufferedChars.length; i++){
-                            //find first full JSON string
-                            if(bufferedChars[i] == '{'){
-                                if(loopedOnce && curlyBracketCounter == minimumCurlyBracketCount){
-                                }
-                                curlyBracketCounter++;
-                                if(curlyBracketCounter > minimumCurlyBracketCount){
-                                    loopedOnce = true;
-
-                                }
-                            } else if(bufferedChars[i] == '}'){
-                                curlyBracketCounter--;
-                                if(curlyBracketCounter < minimumCurlyBracketCount){
-                                    minimumCurlyBracketCount = curlyBracketCounter;
-                                    loopedOnce = false;
-                                    jsonBuilder = new StringBuilder();
-                                }
-                            }
-
-                            if(loopedOnce){
-                                jsonBuilder.append(bufferedChars[i]);
-                                if(bufferedChars[i] == '}' && curlyBracketCounter == minimumCurlyBracketCount){
-                                    String preTestLastReadJSONString = jsonBuilder.toString();
-
-                                    System.out.println("JSON: " + preTestLastReadJSONString);
-                                    try {
-                                        JsonObject jsonTestObject = (JsonObject) Jsoner.deserialize(preTestLastReadJSONString);
-                                        lastReadJSONString = preTestLastReadJSONString;
-                                    } catch (JsonException e) {
-                                        e.printStackTrace();
-                                    }
-
-                                    jsonBuilder = new StringBuilder();
-                                    bufferBuilder = new StringBuilder();
-                                    continue bufferReader;
-                                }
-                            }
-
-                        }
-                    }
-
-                }
             }
-            catch ( IOException e )
-            {
-                e.printStackTrace();
-            }*/
         }
     }
 
