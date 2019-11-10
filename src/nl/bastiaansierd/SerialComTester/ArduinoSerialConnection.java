@@ -88,7 +88,13 @@ public class ArduinoSerialConnection{
                     json+=line;
                     if (line.trim().equals("}")) {
                         // process json string
-                        System.out.println("JSON:"+json);
+                        System.out.println("JSON: " + json);
+                        try {
+                            JsonObject jsonTestObject = (JsonObject) Jsoner.deserialize(json);
+                            lastReadJSONString = json;
+                        } catch (JsonException e) {
+                            e.printStackTrace();
+                        }
                         json="";
                     }
                 } catch (IOException e) {
