@@ -21,8 +21,6 @@ public class ArduinoSerialConnection{
         return instance;
     }
 
-    private Thread arduinoInputThread;
-
     public ArduinoSerialConnection() {
         try {
             connect("COM6");
@@ -30,8 +28,6 @@ public class ArduinoSerialConnection{
             e.printStackTrace();
         }
     }
-
-    public Thread getArduinoInputThread(){ return arduinoInputThread;}
 
     private void connect ( String portName ) throws Exception
     {
@@ -52,9 +48,8 @@ public class ArduinoSerialConnection{
                 InputStream ArduinoInputStream = serialPort.getInputStream();
                 OutputStream ArduinoOutputStream = serialPort.getOutputStream();
 
-                arduinoInputThread = new Thread(new SerialReader(ArduinoInputStream));
-                arduinoInputThread.start();
-                new Thread(new SerialWriter(ArduinoOutputStream)).start();
+                Thread Connector = new Thread(new Relay(ArduinoInputStream, ArduinoOutputStream));
+                Connector.start();
             }
             else
             {
@@ -64,15 +59,16 @@ public class ArduinoSerialConnection{
     }
 
 
-    public static class SerialReader implements Runnable
+    public static class Relay implements Runnable
     {
-        InputStream in;
         BufferedReader src;
+        OutputStream arduinoOut;
 
-        public SerialReader ( InputStream in)
+        public Relay(InputStream in, OutputStream out)
         {
-            this.in = in;
             src=new BufferedReader(new InputStreamReader(in));
+            arduinoOut = out;
+
         }
 
         public void run ()
@@ -86,16 +82,33 @@ public class ArduinoSerialConnection{
                         // process json string
                         try {
                             JsonObject jsonTestObject = (JsonObject) Jsoner.deserialize(json);
-                            //jsonTestObject.
                             System.out.println("JSON: " + json);
 
                             //stuur over socket naar server of stub
                             Socket s = new Socket("localhost", 8888);
-                            InputStream serverIn = s.getInputStream();
                             OutputStream serverOut = s.getOutputStream();
                             PrintWriter writer = new PrintWriter(serverOut);
                             writer.println(json);
                             writer.flush();
+
+                            try {
+                                InputStream serverIn = s.getInputStream();
+                                Scanner scanner = new Scanner(serverIn);
+                                while (scanner.hasNextLine()){
+                                    String serverInput = scanner.nextLine();
+                                    Byte b = 0;
+                                    if(serverInput.equals("1")){
+                                        b = 1;
+                                    } else if(serverInput.equals("0")){
+                                        b = 0;
+                                    }
+
+                                    System.out.println("buzzerOn : " + serverInput);
+                                    arduinoOut.write(b);
+                                }
+                            } catch (Exception e){
+                                e.printStackTrace();
+                            }
 
                             s.close();
 
@@ -107,32 +120,6 @@ public class ArduinoSerialConnection{
                 } catch (IOException e) {
                     //e.printStackTrace();
                 }
-            }
-        }
-    }
-
-    private static class SerialWriter implements Runnable
-    {
-        OutputStream out;
-
-        public SerialWriter ( OutputStream out )
-        {
-            this.out = out;
-        }
-
-        public void run ()
-        {
-            try
-            {
-                int c = 0;
-                while ( ( c = System.in.read()) > -1 )
-                {
-                    this.out.write(c);
-                }
-            }
-            catch ( IOException e )
-            {
-                e.printStackTrace();
             }
         }
     }

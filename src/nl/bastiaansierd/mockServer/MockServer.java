@@ -1,9 +1,5 @@
 package nl.bastiaansierd.mockServer;
 
-import com.github.cliftonlabs.json_simple.JsonException;
-import com.github.cliftonlabs.json_simple.JsonObject;
-import com.github.cliftonlabs.json_simple.Jsoner;
-
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -35,14 +31,26 @@ public class MockServer {
 
             try {
                 InputStream in = socket.getInputStream();
-                Scanner scanner = new Scanner(in);
+                OutputStream out = socket.getOutputStream();
 
-                while (scanner.hasNextLine()) {
+                Scanner scanner = new Scanner(in);
+                PrintWriter writer = new PrintWriter(out);
+
+                if(scanner.hasNextLine()){
                     System.out.println("line: " + scanner.nextLine());
-                    socket.close();
+                    Byte b = 0;
+                    writer.print(b);
+                    writer.flush();
                 }
+
             } catch (IOException e) {
                 e.printStackTrace();
+            } finally {
+                try {
+                    socket.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
             }
 
         }
