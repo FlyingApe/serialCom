@@ -20,6 +20,7 @@ public class ArduinoSerialConnection{
         return instance;
     }
 
+    private Thread arduinoInputThread;
 
     public ArduinoSerialConnection() {
         try {
@@ -28,6 +29,8 @@ public class ArduinoSerialConnection{
             e.printStackTrace();
         }
     }
+
+    public Thread getArduinoInputThread(){ return arduinoInputThread;}
 
     private void connect ( String portName ) throws Exception
     {
@@ -48,8 +51,9 @@ public class ArduinoSerialConnection{
                 InputStream ArduinoInputStream = serialPort.getInputStream();
                 OutputStream ArduinoOutputStream = serialPort.getOutputStream();
 
-                (new Thread(new SerialReader(ArduinoInputStream))).start();
-                (new Thread(new SerialWriter(ArduinoOutputStream))).start();
+                arduinoInputThread = new Thread(new SerialReader(ArduinoInputStream));
+                arduinoInputThread.start();
+                new Thread(new SerialWriter(ArduinoOutputStream)).start();
             }
             else
             {
@@ -62,11 +66,13 @@ public class ArduinoSerialConnection{
     public static class SerialReader implements Runnable
     {
         InputStream in;
+        BufferedReader src;
         private String lastReadJSONString;
 
-        public SerialReader ( InputStream in )
+        public SerialReader ( InputStream in)
         {
             this.in = in;
+            src=new BufferedReader(new InputStreamReader(in));
         }
 
         public String getLastReadJSONString() {
@@ -75,6 +81,20 @@ public class ArduinoSerialConnection{
 
         public void run ()
         {
+            String json="";
+            while (true) {
+                try {
+                    String line=src.readLine();
+                    json+=line;
+                    if (line.trim().equals("}")) {
+                        // process json string
+                        System.out.println("JSON:"+json);
+                        json="";
+                    }
+                } catch (IOException e) {
+                    //e.printStackTrace();
+                }
+            }/*
             byte[] buffer = new byte[1024];
             int len = -1;
             try {
@@ -87,12 +107,14 @@ public class ArduinoSerialConnection{
                 bufferReader:
                 while ((len = this.in.read(buffer)) > -1) {
                     String bufferedString = new String(buffer, 0, len);
-                    //System.out.println("bufferedstring: " + bufferedString);
+                    //System.out.println("bS: " + bufferedString);
+
                     bufferBuilder.append(bufferedString);
                     inputString = bufferBuilder.toString();
 
                     //boolean write = false;
                     Scanner bufferScanner = new Scanner(inputString);
+
                     boolean loopedOnce = false;
                     int curlyBracketCounter = 0;
                     int minimumCurlyBracketCount = 1024;
@@ -147,7 +169,7 @@ public class ArduinoSerialConnection{
             catch ( IOException e )
             {
                 e.printStackTrace();
-            }
+            }*/
         }
     }
 

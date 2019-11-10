@@ -12,5 +12,16 @@ public class Main {
             // TODO Auto-generated catch block
             e.printStackTrace();
         }
+
+        try{
+            //connect to server
+        }
+        catch ( Exception e){
+            e.printStackTrace();
+        }
+
+        //thread verzamelen
+
+
     }
 }
